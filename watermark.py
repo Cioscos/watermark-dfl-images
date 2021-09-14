@@ -13,7 +13,6 @@ import multiprocessing as mp
 image_extensions = [".jpg", ".jpeg", ".png", ".tif", ".tiff"]
 OUTPUT_FOLDER = 'watermarked images'
 FONT_FAMILY = "arial.ttf"
-FONT_SIZE = 8
 
 def scantree(path):
     """Recursively yield DirEntry objects for given directory."""
@@ -71,9 +70,6 @@ def process_image(filepath):
     if not input_dfl or not input_dfl.has_data():
         print('\t################ No landmarks in file')
         is_dfl = False
-
-    def_font = ImageFont.truetype(FONT_FAMILY, FONT_SIZE)
-    text_w, text_h = get_text_dimensions(f"{filepath.stem}", def_font)
         
     if is_dfl:
         xseg = input_dfl.get_xseg_mask_compressed()
@@ -83,21 +79,20 @@ def process_image(filepath):
         image_pil = Image.fromarray(image.astype(np.uint8))
         w, h, _ = input_dfl.get_shape()
 
+        # scale font size considering that 16 is good for 198res images
+        font_size = int((16 * w) / 198)
+
+        def_font = ImageFont.truetype(FONT_FAMILY, font_size)
+        text_w, text_h = get_text_dimensions(f"{filepath.stem}", def_font)
+
         image_pil = image_pil.resize((w, h))
-
-        white_pixels = []
-
-        for x in range(w):
-            for y in range(h):
-                if value_of_pixel(image_pil, x, y) == 255:
-                    white_pixels.append((x, y))
 
         matrix = []
         row = []
 
-        for y in range(h):
-            for x in range(w):
-                if (x, y) in white_pixels:
+        for x in range(w):
+            for y in range(h):
+                if value_of_pixel(image_pil, x, y) == 255:
                     row.append(1)
                 else:
                     row.append(0)
@@ -247,8 +242,6 @@ def main():
 
     with mp.Pool(processes=cpus) as p:
         list(tqdm(p.imap_unordered(process_image, image_paths), total=len(image_paths), ascii=True))
-        p.terminate()
-        p.join()
 
 if __name__ == "__main__":
     # make the program starts with --onefile conf. pyinstaller on Windows system
