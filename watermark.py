@@ -9,7 +9,6 @@ import numpy as np
 import cv2
 import multiprocessing as mp
 
-
 image_extensions = [".jpg", ".jpeg", ".png", ".tif", ".tiff"]
 OUTPUT_FOLDER = 'watermarked images'
 FONT_FAMILY = "arial.ttf"
@@ -72,11 +71,14 @@ def process_image(filepath):
         is_dfl = False
         
     if is_dfl:
+        dfl_data = input_dfl.get_dict()
+        landmarks = input_dfl.get_landmarks()
+        if input_dfl.has_seg_ie_polys() : xseg_polys = input_dfl.get_seg_ie_polys()
         xseg = input_dfl.get_xseg_mask_compressed()
         image = cv2.imdecode(xseg, cv2.IMREAD_UNCHANGED)
         image = image.astype(np.uint8)
 
-        image_pil = Image.fromarray(image.astype(np.uint8))
+        image_pil = Image.fromarray(image)
         w, h, _ = input_dfl.get_shape()
 
         # scale font size considering that 16 is good for 198res images
@@ -129,6 +131,13 @@ def process_image(filepath):
         editable_image = ImageDraw.Draw(final_image)
         editable_image.text(cord, f"{filepath.stem}", (255, 0, 221), font=def_font)
         final_image.save(f'.\\{OUTPUT_FOLDER}\\{filepath.name}', quality=100, subsampling=0)
+
+        # open again saved file and put dfl data inside
+        OutputDflImg = DFLJPG.load(f'.\\{OUTPUT_FOLDER}\\{filepath.name}')
+        OutputDflImg.set_dict(dfl_data)
+        OutputDflImg.set_landmarks(landmarks)
+        if input_dfl.has_seg_ie_polys() : OutputDflImg.set_seg_ie_polys(xseg_polys)
+        OutputDflImg.save()
 
     else:
         image = Image.open(filepath)

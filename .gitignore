@@ -2,3 +2,5 @@ aligned
 output
 venv
 watermarked images
+*.exe
+__pycache__
