@@ -1,6 +1,7 @@
 aligned
 output
 venv
+DFLIMG/__pycache__
 watermarked images
 *.exe
 __pycache__
