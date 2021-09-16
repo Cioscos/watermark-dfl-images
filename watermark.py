@@ -40,11 +40,6 @@ def get_image_paths(dir_path, image_extensions=image_extensions, subdirs=False, 
 def value_of_pixel(pil_image, x, y):
     return pil_image.getpixel((x, y))
 
-def bytes_to_ndarray(bytes):
-    bytes_io = bytearray(bytes)
-    img = Image.open(BytesIO(bytes_io))
-    return np.array(img)
-
 def get_text_dimensions(text_string, font):
     _, descent = font.getmetrics()
 
@@ -130,10 +125,11 @@ def process_image(filepath):
         final_image = Image.open(filepath)
         editable_image = ImageDraw.Draw(final_image)
         editable_image.text(cord, f"{filepath.stem}", (255, 0, 221), font=def_font)
-        final_image.save(f'.\\{OUTPUT_FOLDER}\\{filepath.name}', quality=100, subsampling=0)
+        img_byte_arr = BytesIO()
+        final_image.save(img_byte_arr, format='jpeg', quality=100, subsampling=0)
 
         # open again saved file and put dfl data inside
-        OutputDflImg = DFLJPG.load(f'.\\{OUTPUT_FOLDER}\\{filepath.name}')
+        OutputDflImg = DFLJPG.load(f'.\\{OUTPUT_FOLDER}\\{filepath.name}', image_as_bytes=img_byte_arr.getvalue())
         OutputDflImg.set_dict(dfl_data)
         OutputDflImg.set_landmarks(landmarks)
         if input_dfl.has_seg_ie_polys() : OutputDflImg.set_seg_ie_polys(xseg_polys)
@@ -233,7 +229,17 @@ if sys.platform.startswith('win'):
     forking.Popen = _Popen
 
 def main():
+    if len(sys.argv) < 2:
+        print('Wrong script usage. Correct usage:\n\tpython watermark.py <path of image folder')
+        input('Press one key to continue . . .')
+        exit(1)
+
     input_path = Path(sys.argv[1])
+
+    debug = False
+    if len(sys.argv) == 3:
+        if sys.argv[2].lower() == 'debug':
+            debug = True
 
     if not input_path.exists():
         print("input_dir not found.")
@@ -249,8 +255,11 @@ def main():
     if not os.path.exists(OUTPUT_FOLDER):
         os.mkdir(OUTPUT_FOLDER)
 
-    with mp.Pool(processes=cpus) as p:
-        list(tqdm(p.imap_unordered(process_image, image_paths), total=len(image_paths), ascii=True))
+    if debug:
+        process_image(image_paths[0])
+    else:
+        with mp.Pool(processes=cpus) as p:
+            list(tqdm(p.imap_unordered(process_image, image_paths), total=len(image_paths), ascii=True))
 
 if __name__ == "__main__":
     # make the program starts with --onefile conf. pyinstaller on Windows system

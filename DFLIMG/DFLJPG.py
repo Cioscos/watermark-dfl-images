@@ -24,10 +24,12 @@ class DFLJPG(object):
         self.img = None
 
     @staticmethod
-    def load_raw(filename, loader_func=None):
+    def load_raw(filename, loader_func=None, image_as_bytes=False):
         try:
             if loader_func is not None:
                 data = loader_func(filename)
+            elif image_as_bytes is not None:
+                data = image_as_bytes
             else:
                 with open(filename, "rb") as f:
                     data = f.read()
@@ -126,9 +128,9 @@ class DFLJPG(object):
             exception = f"Corrupted JPG file {filename} {e}"
 
     @staticmethod
-    def load(filename, loader_func=None):
+    def load(filename, loader_func=None, image_as_bytes=None):
         try:
-            inst = DFLJPG.load_raw (filename, loader_func=loader_func)
+            inst = DFLJPG.load_raw (filename, loader_func=loader_func, image_as_bytes=image_as_bytes)
             if inst == None:
                 return
             inst.dfl_dict = {}
