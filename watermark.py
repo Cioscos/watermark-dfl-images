@@ -83,20 +83,8 @@ def process_image(filepath):
         text_w, text_h = get_text_dimensions(f"{filepath.stem}", def_font)
 
         image_pil = image_pil.resize((w, h))
-
-        matrix = []
-        row = []
-
-        for x in range(w):
-            for y in range(h):
-                if value_of_pixel(image_pil, x, y) == 255:
-                    row.append(1)
-                else:
-                    row.append(0)
-            matrix.append(row.copy())
-            row.clear()
-
-        np_matrix = np.array(matrix)
+        
+        np_matrix = (np.asarray(image_pil) == 255).astype(np.int8)
 
         # divide matrix in 4 matrix
         upper_left, upper_right, bottom_left, bottom_right = split(np_matrix, int(w/2), int(w/2))
