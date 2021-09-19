@@ -84,7 +84,7 @@ def process_image(filepath):
 
         image_pil = image_pil.resize((w, h))
         
-        np_matrix = (np.asarray(image_pil) == 255).astype(np.int8)
+        np_matrix = (np.asarray(image_pil) == 255)
 
         # divide matrix in 4 matrix
         upper_left, upper_right, bottom_left, bottom_right = split(np_matrix, int(w/2), int(w/2))
