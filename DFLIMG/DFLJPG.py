@@ -10,7 +10,7 @@ import numpy as np
 from .SegIEPolys import *
 # from core.interact import interact as io
 from .structex import *
-# from facelib import FaceType
+from .FaceType import *
 
 
 class DFLJPG(object):

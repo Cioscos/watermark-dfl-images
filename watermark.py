@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from tqdm import tqdm
 from DFLIMG.DFLJPG import DFLJPG
+from DFLIMG.FaceType import *
 import numpy as np
 import cv2
 import multiprocessing as mp
@@ -17,7 +18,7 @@ def scantree(path):
     """Recursively yield DirEntry objects for given directory."""
     for entry in os.scandir(path):
         if entry.is_dir(follow_symlinks=False):
-            yield from scantree(entry.path)  # see below for Python 2.x
+            yield from scantree(entry.path)
         else:
             yield entry
 
@@ -62,7 +63,7 @@ def process_image(filepath):
     is_dfl = True
 
     if not input_dfl or not input_dfl.has_data():
-        print('\t################ No landmarks in file')
+        print(f'\t################ No landmarks in file {filepath}')
         is_dfl = False
         
     if is_dfl:
@@ -70,14 +71,23 @@ def process_image(filepath):
         landmarks = input_dfl.get_landmarks()
         if input_dfl.has_seg_ie_polys() : xseg_polys = input_dfl.get_seg_ie_polys()
         xseg = input_dfl.get_xseg_mask_compressed()
+        face_type = input_dfl.get_face_type()
+
+        if xseg is None:
+            return f"{filepath} doesn't have XSeg mask"
+
         image = cv2.imdecode(xseg, cv2.IMREAD_UNCHANGED)
         image = image.astype(np.uint8)
 
         image_pil = Image.fromarray(image)
         w, h, _ = input_dfl.get_shape()
 
-        # scale font size considering that 16 is good for 198res images
-        font_size = int((16 * w) / 198)
+        if face_type == 'full_face':
+            # scale font size considering that 16 is good for 198res images whole face
+            font_size = int((11 * w) / 198)
+        else:
+            # scale font size considering that 16 is good for 198res images
+            font_size = int((16 * w) / 198)
 
         def_font = ImageFont.truetype(FONT_FAMILY, font_size)
         text_w, text_h = get_text_dimensions(f"{filepath.stem}", def_font)
@@ -247,8 +257,11 @@ def main():
         process_image(image_paths[0])
     else:
         with mp.Pool(processes=cpus) as p:
-            list(tqdm(p.imap_unordered(process_image, image_paths), total=len(image_paths), ascii=True))
-
+            returns = list(tqdm(p.imap_unordered(process_image, image_paths), total=len(image_paths), ascii=True))
+    
+    for msg in returns:
+        if msg is not None: print(msg)
+    
 if __name__ == "__main__":
     # make the program starts with --onefile conf. pyinstaller on Windows system
     mp.freeze_support()
